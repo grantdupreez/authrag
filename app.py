@@ -238,16 +238,16 @@ with st.sidebar:
       key="rag_docs",
     )
 
-  # URL input for RAG with websites
-  st.text_input(
-    "🌐 Introduce a URL", 
-    placeholder="https://example.com",
-    on_change=load_url_to_db,
-    key="rag_url",
-  )
+    # URL input for RAG with websites
+    st.text_input(
+        "🌐 Introduce a URL", 
+        placeholder="https://example.com",
+        on_change=load_url_to_db,
+        key="rag_url",
+      )
 
-with st.expander(f"📚 Documents in DB ({0 if not is_vector_db_loaded else len(st.session_state.rag_sources)})"):
-  st.write([] if not is_vector_db_loaded else [source for source in st.session_state.rag_sources])
+    with st.expander(f"📚 Documents in DB ({0 if not is_vector_db_loaded else len(st.session_state.rag_sources)})"):
+      st.write([] if not is_vector_db_loaded else [source for source in st.session_state.rag_sources])
 
 ANTHROPIC_API_KEY = st.secrets["auth_key"]
 MODEL = st.secrets["ai_model"]
