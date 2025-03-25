@@ -1,10 +1,24 @@
 import streamlit as st
+import anthropic
 import os
 import uuid
-from langchain_openai import ChatOpenAI, AzureChatOpenAI
+from time import time
+from langchain_community.document_loaders.text import TextLoader
+from langchain_community.document_loaders import (
+    WebBaseLoader, 
+    PyPDFLoader, 
+    Docx2txtLoader,
+)
+from langchain_community.vectorstores import Chroma
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings, AzureOpenAIEmbeddings
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.chains import create_history_aware_retriever, create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_anthropic import ChatAnthropic
 from langchain.schema import HumanMessage, AIMessage
 import hmac
+
 
 ANTHROPIC_API_KEY = st.secrets["auth_key"]
 MODEL = st.secrets["ai_model"]
