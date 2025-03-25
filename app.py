@@ -257,6 +257,15 @@ class RAGChatApp:
             
             st.session_state.messages.append({"role": "assistant", "content": response})
 
+llm_stream = ChatAnthropic(
+    api_key=anthropic_api_key,
+    model=st.session_state.model.split("/")[-1],
+    temperature=0.3,
+    streaming=True,
+)
+
+
+
 def stream_llm_rag_response(llm_stream, messages):
     conversation_rag_chain = get_conversational_rag_chain(llm_stream)
     response_message = "*(RAG Response)*\n"
