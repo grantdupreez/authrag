@@ -249,12 +249,16 @@ with st.sidebar:
 with st.expander(f"📚 Documents in DB ({0 if not is_vector_db_loaded else len(st.session_state.rag_sources)})"):
   st.write([] if not is_vector_db_loaded else [source for source in st.session_state.rag_sources])
 
+ANTHROPIC_API_KEY = st.secrets["anthropic_api_key"]
+MODEL = st.secrets["anthopric_model"]
+TEMPERATURE = st.secrets["anthopric_temp"]
+    
     
 # Main chat app
     llm_stream = ChatAnthropic(
-      api_key=st.secrets["anthropic_api_key"],
-      model=st.secrets["anthopric_model"],
-      temperature=st.secrets["anthopric_temp"],
+      api_key=ANTHROPIC_API_KEY,
+      model=MODEL,
+      temperature=TEMPERATURE,
       streaming=True,
     )
 
