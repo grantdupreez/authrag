@@ -25,6 +25,7 @@ MODEL = st.secrets["ai_model"]
 TEMPERATURE = st.secrets["ai_temp"]
 MAX_TOKENS = st.secrets["ai_tokens"]
 MODELS = MODEL
+DB_DOCS_LIMIT = 10
 
 
 def check_password():
