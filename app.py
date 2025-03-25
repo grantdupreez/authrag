@@ -250,7 +250,7 @@ with st.sidebar:
 ANTHROPIC_API_KEY = st.secrets["auth_key"]
 MODEL = st.secrets["ai_model"]
 TEMPERATURE = st.secrets["ai_temp"]
-MAX_TOKEN = st.secrets["ai_tokens"]
+MAX_TOKENS = st.secrets["ai_tokens"]
     
     
 # Main chat app
