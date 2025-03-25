@@ -248,17 +248,15 @@ MODEL = st.secrets["ai_model"]
 TEMPERATURE = st.secrets["ai_temp"]
 MAX_TOKENS = st.secrets["ai_tokens"]
 
-client = anthropic.Anthropic(
+llm_stream = anthropic.Anthropic(
     api_key=ANTHROPIC_API_KEY,
 )
    
 # Main chat app
 #llm_stream = ChatAnthropic(
-llm_stream = client(
-    model=MODEL,
-    temperature=TEMPERATURE,
+with llm.messages.stream(
     max_tokens=MAX_TOKENS,
-    streaming=True
+    model=MODEL,
 )
 
 for message in st.session_state.messages:
