@@ -1,4 +1,5 @@
 import streamlit as st
+import anthropic
 import os
 import uuid
 from time import time
