@@ -26,6 +26,7 @@ TEMPERATURE = st.secrets["ai_temp"]
 MAX_TOKENS = st.secrets["ai_tokens"]
 MODELS = MODEL
 DB_DOCS_LIMIT = 10
+OPENAI_KEY = st.secrets["openai_key"]
 
 
 def check_password():
@@ -143,7 +144,7 @@ def load_url_to_db():
 
 
 def initialize_vector_db(docs):
-    embedding = OpenAIEmbeddings(api_key=st.secrets["openai_key"])
+    embedding = OpenAIEmbeddings(api_key=OPENAI_KEY)
 
     vector_db = Chroma.from_documents(
         documents=docs,
