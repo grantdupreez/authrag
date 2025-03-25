@@ -19,8 +19,6 @@ from langchain_anthropic import ChatAnthropic
 from langchain.schema import HumanMessage, AIMessage
 import hmac
 
-MODEL = "anthropic/claude-3-5-sonnet-20240620"
-
 def check_password():
     """Returns `True` if the user had a correct password."""
 
