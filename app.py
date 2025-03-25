@@ -225,7 +225,6 @@ if "messages" not in st.session_state:
 
 # --- Main Content ---
 with st.sidebar:
-  with cols0[0]:
     st.button("Clear Chat", on_click=lambda: st.session_state.messages.clear(), type="primary")
 
     st.header("RAG Sources:")
