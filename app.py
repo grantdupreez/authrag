@@ -250,14 +250,16 @@ with st.sidebar:
 ANTHROPIC_API_KEY = st.secrets["auth_key"]
 MODEL = st.secrets["ai_model"]
 TEMPERATURE = st.secrets["ai_temp"]
+MAX_TOKEN = st.secrets["ai_tokens"]
     
     
 # Main chat app
 llm_stream = ChatAnthropic(
-    api_key=ANTHROPIC_API_KEY,
     model=MODEL,
     temperature=TEMPERATURE,
-    streaming=True,
+    max_tokens=MAX_TOKENS,
+    api_key=ANTHROPIC_API_KEY,
+    streaming=True
 )
 
 for message in st.session_state.messages:
