@@ -186,8 +186,24 @@ class RAGChatApp:
 
     def _load_url(self):
         """Load URL content into vector database."""
-        # Similar implementation to load_documents, but for URLs
-        pass  # Implement URL loading logic here
+        url = st.session_state.rag_url
+        docs = []
+        if url not in st.session_state.rag_sources:
+            if len(st.session_state.rag_sources) < 10:
+                try:
+                    loader = WebBaseLoader(url)
+                    docs.extend(loader.load())
+                    st.session_state.rag_sources.append(url)
+
+                except Exception as e:
+                    st.error(f"Error loading document from {url}: {e}")
+
+                if docs:
+                    _split_and_load_docs(docs)
+                    st.toast(f"Document from URL *{url}* loaded successfully.", icon="✅")
+
+            else:
+                st.error("Maximum number of documents reached (10).")
 
     def _display_messages(self):
         """Display chat messages."""
