@@ -204,10 +204,6 @@ def stream_llm_rag_response(llm_stream, messages):
     st.session_state.messages.append({"role": "assistant", "content": response_message})
   
 
-#client = anthropic.Anthropic(
-#    api_key=st.secrets["auth_key"],
-#)
-
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 
@@ -251,12 +247,14 @@ ANTHROPIC_API_KEY = st.secrets["auth_key"]
 MODEL = st.secrets["ai_model"]
 TEMPERATURE = st.secrets["ai_temp"]
 MAX_TOKENS = st.secrets["ai_tokens"]
-    
-    
+
+client = anthropic.Anthropic(
+    api_key=ANTHROPIC_API_KEY,
+)
+   
 # Main chat app
 #llm_stream = ChatAnthropic(
-llm_stream = anthropic.Anthropic(
-    api_key=ANTHROPIC_API_KEY,
+llm_stream = client(
     model=MODEL,
     temperature=TEMPERATURE,
     max_tokens=MAX_TOKENS,
