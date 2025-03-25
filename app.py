@@ -4,8 +4,6 @@ import hmac
 import streamlit as st
 import anthropic
 from typing import List, Optional
-
-# Improved document loaders
 from langchain_community.document_loaders import (
     TextLoader, 
     WebBaseLoader, 
@@ -19,6 +17,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.schema import HumanMessage, AIMessage
+import datetime
 
 # Constants
 DB_DOCS_LIMIT = 10
