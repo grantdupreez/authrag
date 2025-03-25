@@ -218,8 +218,15 @@ class RAGChatApp:
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            # Implement your LLM response generation here
-            pass
+            message_placeholder = st.empty()
+            full_response = ""
+
+            messages = [HumanMessage(content=m["content"]) if m["role"] == "user" else AIMessage(content=m["content"]) for m in st.session_state.messages]
+
+            if not st.session_state.use_rag:
+                st.write_stream(stream_llm_response(llm_stream, messages))
+            else:
+                st.write_stream(stream_llm_rag_response(llm_stream, messages))
 
 def main():
     st.title("RAG Chat Application")
