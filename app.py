@@ -24,6 +24,7 @@ ANTHROPIC_API_KEY = st.secrets["auth_key"]
 MODEL = st.secrets["ai_model"]
 TEMPERATURE = st.secrets["ai_temp"]
 MAX_TOKENS = st.secrets["ai_tokens"]
+MODELS = MODEL
 
 
 def check_password():
