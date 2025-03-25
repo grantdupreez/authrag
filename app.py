@@ -255,27 +255,27 @@ TEMPERATURE = st.secrets["anthopric_temp"]
     
     
 # Main chat app
-    llm_stream = ChatAnthropic(
-      api_key=ANTHROPIC_API_KEY,
-      model=MODEL,
-      temperature=TEMPERATURE,
-      streaming=True,
-    )
+llm_stream = ChatAnthropic(
+    api_key=ANTHROPIC_API_KEY,
+    model=MODEL,
+    temperature=TEMPERATURE,
+    streaming=True,
+)
 
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-    if prompt := st.chat_input("Your message"):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+if prompt := st.chat_input("Your message"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
     with st.chat_message("assistant"):
-      message_placeholder = st.empty()
-      full_response = ""
+        message_placeholder = st.empty()
+        full_response = ""
 
-      messages = [HumanMessage(content=m["content"]) if m["role"] == "user" else AIMessage(content=m["content"]) for m in st.session_state.messages]
+        messages = [HumanMessage(content=m["content"]) if m["role"] == "user" else AIMessage(content=m["content"]) for m in st.session_state.messages]
 
     st.write_stream(stream_llm_rag_response(llm_stream, messages))
 
