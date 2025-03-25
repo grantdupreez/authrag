@@ -206,9 +206,9 @@ def stream_llm_rag_response(llm_stream, messages):
     st.session_state.messages.append({"role": "assistant", "content": response_message})
   
 
-client = anthropic.Anthropic(
-    api_key=st.secrets["ANTHROPIC_API_KEY"],
-)
+#client = anthropic.Anthropic(
+#    api_key=st.secrets["auth_key"],
+#)
 
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
