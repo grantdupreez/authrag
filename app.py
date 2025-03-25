@@ -339,31 +339,12 @@ else:
 
     
     # Main chat app
-    model_provider = st.session_state.model.split("/")[0]
-    if model_provider == "openai":
-        llm_stream = ChatOpenAI(
-            api_key=openai_api_key,
-            model_name=st.session_state.model.split("/")[-1],
-            temperature=0.3,
-            streaming=True,
-        )
-    elif model_provider == "anthropic":
-        llm_stream = ChatAnthropic(
-            api_key=anthropic_api_key,
-            model=st.session_state.model.split("/")[-1],
-            temperature=0.3,
-            streaming=True,
-        )
-    elif model_provider == "azure-openai":
-        llm_stream = AzureChatOpenAI(
-            azure_endpoint=os.getenv("AZ_OPENAI_ENDPOINT"),
-            openai_api_version="2024-02-15-preview",
-            model_name=st.session_state.model.split("/")[-1],
-            openai_api_key=os.getenv("AZ_OPENAI_API_KEY"),
-            openai_api_type="azure",
-            temperature=0.3,
-            streaming=True,
-        )
+    llm_stream = ChatAnthropic(
+        api_key=anthropic_api_key,
+        model=st.session_state.model.split("/")[-1],
+        temperature=0.3,
+        streaming=True,
+    )
 
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
