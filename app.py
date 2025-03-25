@@ -133,15 +133,7 @@ class RAGChatApp:
     def _initialize_vector_db(self, docs):
         """Initialize vector database with embedding."""
         # Determine embedding based on available keys
-        if "AZ_OPENAI_API_KEY" not in os.environ:
-            embedding = OpenAIEmbeddings(api_key=st.session_state.get('openai_api_key'))
-        else:
-            embedding = AzureOpenAIEmbeddings(
-                api_key=os.getenv("AZ_OPENAI_API_KEY"),
-                azure_endpoint=os.getenv("AZ_OPENAI_ENDPOINT"),
-                model="text-embedding-3-large",
-                openai_api_version="2024-02-15-preview",
-            )
+        embedding = OpenAIEmbeddings(api_key=st.secrets["openai_key"])
 
         vector_db = Chroma.from_documents(
             documents=docs,
