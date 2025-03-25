@@ -340,9 +340,9 @@ else:
     
     # Main chat app
     llm_stream = ChatAnthropic(
-        api_key=anthropic_api_key,
-        model=st.session_state.model.split("/")[-1],
-        temperature=0.3,
+        api_key=ANTHROPIC_API_KEY,
+        model=MODEL,
+        temperature=TEMPERATURE,
         streaming=True,
     )
 
