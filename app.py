@@ -255,7 +255,7 @@ MAX_TOKENS = st.secrets["ai_tokens"]
     
 # Main chat app
 #llm_stream = ChatAnthropic(
-    llm_stream = anthropic.Anthropic(
+llm_stream = anthropic.Anthropic(
     api_key=ANTHROPIC_API_KEY,
     model=MODEL,
     temperature=TEMPERATURE,
