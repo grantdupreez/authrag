@@ -1,279 +1,55 @@
+import streamlit as st
 import os
 import uuid
+from langchain_openai import ChatOpenAI, AzureChatOpenAI
+from langchain_anthropic import ChatAnthropic
+from langchain.schema import HumanMessage, AIMessage
 import hmac
-import streamlit as st
-import anthropic
-from typing import List, Optional, Union
-from contextlib import contextmanager
-from time import time
 
-from langchain_community.document_loaders import (
-    TextLoader, 
-    WebBaseLoader, 
-    PyPDFLoader, 
-    Docx2txtLoader
-)
-from langchain_community.vectorstores import Chroma
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
-from langchain_core.documents import Document
-from langchain_core.embeddings import Embeddings
+ANTHROPIC_API_KEY = st.secrets["auth_key"]
+MODEL = st.secrets["ai_model"]
+TEMPERATURE = st.secrets["ai_temp"]
+MAX_TOKENS = st.secrets["ai_tokens"]
 
-# Constants
-class RAGConfig:
-    """Configuration constants for the RAG application."""
-    MAX_DOCS_LIMIT = 10
-    MAX_COLLECTION_COUNT = 20
-    CHUNK_SIZE = 5000
-    CHUNK_OVERLAP = 1000
-    SUPPORTED_FILE_TYPES = {
-        "application/pdf": PyPDFLoader,
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": Docx2txtLoader,
-        "text/plain": TextLoader,
-        "text/markdown": TextLoader
-    }
 
-class RAGChatApp:
-    def __init__(self):
-        """Initialize the RAG Chat Application."""
-        self._validate_secrets()
-        self._initialize_session_state()
-        self._setup_authentication()
+def check_password():
+    """Returns `True` if the user had a correct password."""
 
-    def _validate_secrets(self):
-        """Validate required secrets are present."""
-        required_secrets = ["passwords", "openai_key"]
-        missing_secrets = [secret for secret in required_secrets if secret not in st.secrets]
-        
-        if missing_secrets:
-            st.error(f"Missing required secrets: {', '.join(missing_secrets)}")
-            st.stop()
+    def login_form():
+        """Form with widgets to collect user information"""
+        with st.form("Credentials"):
+            st.text_input("Username", key="username")
+            st.text_input("Password", type="password", key="password")
+            st.form_submit_button("Log in", on_click=password_entered)
 
-    def _initialize_session_state(self):
-        """Initialize session state variables with default values."""
-        default_states = {
-            "session_id": str(uuid.uuid4()),
-            "rag_sources": [],
-            "messages": [
-                {"role": "user", "content": "Hello"},
-                {"role": "assistant", "content": "Hi there! How can I assist you today?"}
-            ],
-            "use_rag": True  # Default to using RAG
-        }
-
-        for key, value in default_states.items():
-            if key not in st.session_state:
-                st.session_state[key] = value
-
-    def _setup_authentication(self):
-        """Set up login authentication."""
-        if not self._check_password():
-            st.stop()
-
-    def _check_password(self) -> bool:
-        """Authenticate user credentials."""
-        def login_form():
-            with st.form("Credentials"):
-                st.text_input("Username", key="username")
-                st.text_input("Password", type="password", key="password")
-                st.form_submit_button("Log in", on_click=password_entered)
-
-        def password_entered():
-            username = st.session_state["username"]
-            password = st.session_state["password"]
-            
-            if (username in st.secrets["passwords"] and 
-                hmac.compare_digest(
-                    password,
-                    st.secrets.passwords[username]
-                )):
-                st.session_state["password_correct"] = True
-                del st.session_state["password"]
-                del st.session_state["username"]
-            else:
-                st.session_state["password_correct"] = False
-
-        return st.session_state.get("password_correct", False) or login_form() is not None
-
-    @contextmanager
-    def _temp_file_context(self, file):
-        """Context manager for temporary file handling."""
-        os.makedirs("source_files", exist_ok=True)
-        file_path = f"./source_files/{file.name}"
-        
-        try:
-            with open(file_path, "wb") as f:
-                f.write(file.read())
-            yield file_path
-        finally:
-            os.remove(file_path)
-
-    def _get_document_loader(self, file_path: str, file_type: str):
-        """Select appropriate document loader based on file type."""
-        loader_class = RAGConfig.SUPPORTED_FILE_TYPES.get(file_type)
-        return loader_class(file_path) if loader_class else None
-
-    def _load_documents(self, docs_to_load):
-        """Load and process documents for vector database."""
-        loaded_docs = []
-        for doc_file in docs_to_load:
-            if doc_file.name not in st.session_state.rag_sources:
-                if len(st.session_state.rag_sources) < RAGConfig.MAX_DOCS_LIMIT:
-                    try:
-                        with self._temp_file_context(doc_file) as file_path:
-                            loader = self._get_document_loader(file_path, doc_file.type)
-                            if loader:
-                                loaded_docs.extend(loader.load())
-                                st.session_state.rag_sources.append(doc_file.name)
-                            else:
-                                st.warning(f"Unsupported document type: {doc_file.type}")
-
-                    except Exception as e:
-                        st.toast(f"Error loading {doc_file.name}: {e}", icon="⚠️")
-                else:
-                    st.error(f"Maximum documents reached ({RAGConfig.MAX_DOCS_LIMIT}).")
-        
-        return loaded_docs
-
-    def load_documents(self):
-        """Process uploaded documents and add to vector database."""
-        if not hasattr(st.session_state, 'rag_docs') or not st.session_state.rag_docs:
-            return
-
-        docs = self._load_documents(st.session_state.rag_docs)
-        if docs:
-            self._split_and_load_docs(docs)
-            st.toast(f"Documents loaded: {[doc.name for doc in st.session_state.rag_docs]}", icon="✅")
-
-    def _split_and_load_docs(self, docs: List[Document]):
-        """Split documents and add to vector database."""
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=RAGConfig.CHUNK_SIZE,
-            chunk_overlap=RAGConfig.CHUNK_OVERLAP,
-        )
-        document_chunks = text_splitter.split_documents(docs)
-
-        if not hasattr(st.session_state, 'vector_db'):
-            st.session_state.vector_db = self._initialize_vector_db(document_chunks)
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if st.session_state["username"] in st.secrets[
+            "passwords"
+        ] and hmac.compare_digest(
+            st.session_state["password"],
+            st.secrets.passwords[st.session_state["username"]],
+        ):
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Don't store the username or password.
+            del st.session_state["username"]
         else:
-            st.session_state.vector_db.add_documents(document_chunks)
+            st.session_state["password_correct"] = False
 
-    def _initialize_vector_db(self, docs: List[Document]) -> Chroma:
-        """Initialize vector database with embedding."""
-        embedding: Embeddings = OpenAIEmbeddings(api_key=st.secrets["openai_key"])
+    # Return True if the username + password is validated.
+    if st.session_state.get("password_correct", False):
+        return True
 
-        vector_db = Chroma.from_documents(
-            documents=docs,
-            embedding=embedding,
-            collection_name=f"{str(time()).replace('.', '')[:14]}_{st.session_state['session_id']}",
-        )
+    # Show inputs for username + password.
+    login_form()
+    if "password_correct" in st.session_state:
+        st.error("😕 User not known or password incorrect")
+    return False
 
-        self._manage_vector_db_collections(vector_db)
-        return vector_db
+if not check_password():
+    st.stop()
 
-    def _manage_vector_db_collections(self, vector_db: Chroma):
-        """Manage number of vector database collections."""
-        chroma_client = vector_db._client
-        collection_names = sorted([collection.name for collection in chroma_client.list_collections()])
-        
-        while len(collection_names) > RAGConfig.MAX_COLLECTION_COUNT:
-            chroma_client.delete_collection(collection_names[0])
-            collection_names.pop(0)
-
-    def run(self):
-        """Main application runner."""
-        with st.sidebar:
-            # Chat settings toggles
-            st.toggle("Use RAG", key="use_rag", value=True)
-            st.button("Clear Chat", on_click=self._clear_chat, type="primary")
-            
-            st.header("RAG Sources:")
-            st.file_uploader(
-                "📄 Upload document", 
-                type=["pdf", "txt", "docx", "md"],
-                accept_multiple_files=True,
-                on_change=self.load_documents,
-                key="rag_docs",
-            )
-
-            st.text_input(
-                "🌐 Add URL", 
-                placeholder="https://example.com",
-                on_change=self._load_url,
-                key="rag_url",
-            )
-
-        self._display_messages()
-        
-        if prompt := st.chat_input("Your message"):
-            self._process_user_message(prompt)
-
-    def _clear_chat(self):
-        """Clear chat messages and reset session state."""
-        st.session_state.messages.clear()
-        if hasattr(st.session_state, 'vector_db'):
-            del st.session_state.vector_db
-        st.session_state.rag_sources.clear()
-
-    def _load_url(self):
-        """Load URL content into vector database."""
-        url = st.session_state.rag_url
-        if url and url not in st.session_state.rag_sources:
-            if len(st.session_state.rag_sources) < RAGConfig.MAX_DOCS_LIMIT:
-                try:
-                    loader = WebBaseLoader(url)
-                    docs = loader.load()
-                    st.session_state.rag_sources.append(url)
-
-                    if docs:
-                        self._split_and_load_docs(docs)
-                        st.toast(f"Document from URL *{url}* loaded successfully.", icon="✅")
-
-                except Exception as e:
-                    st.error(f"Error loading document from {url}: {e}")
-            else:
-                st.error(f"Maximum number of documents reached ({RAGConfig.MAX_DOCS_LIMIT}).")
-
-    def _display_messages(self):
-        """Display chat messages."""
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-
-    def _process_user_message(self, prompt: str):
-        """Process user message and generate response."""
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        with st.chat_message("assistant"):
-            # Note: The missing stream_llm_response and llm_stream functions need to be implemented
-            with st.spinner("Generating response..."):
-                if not st.session_state.use_rag:
-                    response = stream_llm_response(llm_stream, prompt)
-                else:
-                    response = stream_llm_rag_response(llm_stream, prompt)
-            
-            st.session_state.messages.append({"role": "assistant", "content": response})
-
-llm_stream = ChatAnthropic(
-    api_key=anthropic_api_key,
-    model=st.session_state.model.split("/")[-1],
-    temperature=0.3,
-    streaming=True,
-)
-
-
-
-def stream_llm_rag_response(llm_stream, messages):
-    conversation_rag_chain = get_conversational_rag_chain(llm_stream)
-    response_message = "*(RAG Response)*\n"
-    for chunk in conversation_rag_chain.pick("answer").stream({"messages": messages[:-1], "input": messages[-1].content}):
-        response_message += chunk
-        yield chunk
-
-    st.session_state.messages.append({"role": "assistant", "content": response_message})
+# --- start of app ---
 
 def stream_llm_response(llm_stream, messages):
     response_message = ""
@@ -285,12 +61,317 @@ def stream_llm_response(llm_stream, messages):
     st.session_state.messages.append({"role": "assistant", "content": response_message})
 
 
+# --- Indexing Phase ---
 
-def main():
-    st.set_page_config(page_title="RAG Chat App", page_icon="🤖")
-    st.title("RAG Chat Application")
-    app = RAGChatApp()
-    app.run()
+def load_doc_to_db():
+    # Use loader according to doc type
+    if "rag_docs" in st.session_state and st.session_state.rag_docs:
+        docs = [] 
+        for doc_file in st.session_state.rag_docs:
+            if doc_file.name not in st.session_state.rag_sources:
+                if len(st.session_state.rag_sources) < DB_DOCS_LIMIT:
+                    os.makedirs("source_files", exist_ok=True)
+                    file_path = f"./source_files/{doc_file.name}"
+                    with open(file_path, "wb") as file:
+                        file.write(doc_file.read())
 
-if __name__ == "__main__":
-    main()
+                    try:
+                        if doc_file.type == "application/pdf":
+                            loader = PyPDFLoader(file_path)
+                        elif doc_file.name.endswith(".docx"):
+                            loader = Docx2txtLoader(file_path)
+                        elif doc_file.type in ["text/plain", "text/markdown"]:
+                            loader = TextLoader(file_path)
+                        else:
+                            st.warning(f"Document type {doc_file.type} not supported.")
+                            continue
+
+                        docs.extend(loader.load())
+                        st.session_state.rag_sources.append(doc_file.name)
+
+                    except Exception as e:
+                        st.toast(f"Error loading document {doc_file.name}: {e}", icon="⚠️")
+                        print(f"Error loading document {doc_file.name}: {e}")
+                    
+                    finally:
+                        os.remove(file_path)
+
+                else:
+                    st.error(F"Maximum number of documents reached ({DB_DOCS_LIMIT}).")
+
+        if docs:
+            _split_and_load_docs(docs)
+            st.toast(f"Document *{str([doc_file.name for doc_file in st.session_state.rag_docs])[1:-1]}* loaded successfully.", icon="✅")
+
+
+def load_url_to_db():
+    if "rag_url" in st.session_state and st.session_state.rag_url:
+        url = st.session_state.rag_url
+        docs = []
+        if url not in st.session_state.rag_sources:
+            if len(st.session_state.rag_sources) < 10:
+                try:
+                    loader = WebBaseLoader(url)
+                    docs.extend(loader.load())
+                    st.session_state.rag_sources.append(url)
+
+                except Exception as e:
+                    st.error(f"Error loading document from {url}: {e}")
+
+                if docs:
+                    _split_and_load_docs(docs)
+                    st.toast(f"Document from URL *{url}* loaded successfully.", icon="✅")
+
+            else:
+                st.error("Maximum number of documents reached (10).")
+
+
+def initialize_vector_db(docs):
+    if "AZ_OPENAI_API_KEY" not in os.environ:
+        embedding = OpenAIEmbeddings(api_key=st.session_state.openai_api_key)
+    else:
+        embedding = AzureOpenAIEmbeddings(
+            api_key=os.getenv("AZ_OPENAI_API_KEY"), 
+            azure_endpoint=os.getenv("AZ_OPENAI_ENDPOINT"),
+            model="text-embedding-3-large",
+            openai_api_version="2024-02-15-preview",
+        )
+
+    vector_db = Chroma.from_documents(
+        documents=docs,
+        embedding=embedding,
+        collection_name=f"{str(time()).replace('.', '')[:14]}_" + st.session_state['session_id'],
+    )
+
+    # We need to manage the number of collections that we have in memory, we will keep the last 20
+    chroma_client = vector_db._client
+    collection_names = sorted([collection.name for collection in chroma_client.list_collections()])
+    print("Number of collections:", len(collection_names))
+    while len(collection_names) > 20:
+        chroma_client.delete_collection(collection_names[0])
+        collection_names.pop(0)
+
+    return vector_db
+
+
+def _split_and_load_docs(docs):
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=5000,
+        chunk_overlap=1000,
+    )
+
+    document_chunks = text_splitter.split_documents(docs)
+
+    if "vector_db" not in st.session_state:
+        st.session_state.vector_db = initialize_vector_db(docs)
+    else:
+        st.session_state.vector_db.add_documents(document_chunks)
+
+
+# --- Retrieval Augmented Generation (RAG) Phase ---
+
+def _get_context_retriever_chain(vector_db, llm):
+    retriever = vector_db.as_retriever()
+    prompt = ChatPromptTemplate.from_messages([
+        MessagesPlaceholder(variable_name="messages"),
+        ("user", "{input}"),
+        ("user", "Given the above conversation, generate a search query to look up in order to get inforamtion relevant to the conversation, focusing on the most recent messages."),
+    ])
+    retriever_chain = create_history_aware_retriever(llm, retriever, prompt)
+
+    return retriever_chain
+
+
+def get_conversational_rag_chain(llm):
+    retriever_chain = _get_context_retriever_chain(st.session_state.vector_db, llm)
+
+    prompt = ChatPromptTemplate.from_messages([
+        ("system",
+        """You are a helpful assistant. You will have to answer to user's queries.
+        You will have some context to help with your answers, but now always would be completely related or helpful.
+        You can also use your knowledge to assist answering the user's queries.\n
+        {context}"""),
+        MessagesPlaceholder(variable_name="messages"),
+        ("user", "{input}"),
+    ])
+    stuff_documents_chain = create_stuff_documents_chain(llm, prompt)
+
+    return create_retrieval_chain(retriever_chain, stuff_documents_chain)
+
+
+def stream_llm_rag_response(llm_stream, messages):
+    conversation_rag_chain = get_conversational_rag_chain(llm_stream)
+    response_message = "*(RAG Response)*\n"
+    for chunk in conversation_rag_chain.pick("answer").stream({"messages": messages[:-1], "input": messages[-1].content}):
+        response_message += chunk
+        yield chunk
+
+    st.session_state.messages.append({"role": "assistant", "content": response_message})
+
+
+
+st.set_page_config(
+    page_title="RAG LLM app?", 
+    page_icon="📚", 
+    layout="centered", 
+    initial_sidebar_state="expanded"
+)
+
+
+
+# --- Initial Setup ---
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())
+
+if "rag_sources" not in st.session_state:
+    st.session_state.rag_sources = []
+
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {"role": "user", "content": "Hello"},
+        {"role": "assistant", "content": "Hi there! How can I assist you today?"}
+]
+
+
+# --- Side Bar LLM API Tokens ---
+with st.sidebar:
+    if "AZ_OPENAI_API_KEY" not in os.environ:
+        default_openai_api_key = os.getenv("OPENAI_API_KEY") if os.getenv("OPENAI_API_KEY") is not None else ""  # only for development environment, otherwise it should return None
+        with st.popover("🔐 OpenAI"):
+            openai_api_key = st.text_input(
+                "Introduce your OpenAI API Key (https://platform.openai.com/)", 
+                value=default_openai_api_key, 
+                type="password",
+                key="openai_api_key",
+            )
+
+        default_anthropic_api_key = os.getenv("ANTHROPIC_API_KEY") if os.getenv("ANTHROPIC_API_KEY") is not None else ""
+        with st.popover("🔐 Anthropic"):
+            anthropic_api_key = st.text_input(
+                "Introduce your Anthropic API Key (https://console.anthropic.com/)", 
+                value=default_anthropic_api_key, 
+                type="password",
+                key="anthropic_api_key",
+            )
+    else:
+        openai_api_key, anthropic_api_key = None, None
+        st.session_state.openai_api_key = None
+        az_openai_api_key = os.getenv("AZ_OPENAI_API_KEY")
+        st.session_state.az_openai_api_key = az_openai_api_key
+
+
+# --- Main Content ---
+# Checking if the user has introduced the OpenAI API Key, if not, a warning is displayed
+missing_openai = openai_api_key == "" or openai_api_key is None or "sk-" not in openai_api_key
+missing_anthropic = anthropic_api_key == "" or anthropic_api_key is None
+if missing_openai and missing_anthropic and ("AZ_OPENAI_API_KEY" not in os.environ):
+    st.write("#")
+    st.warning("⬅️ Please introduce an API Key to continue...")
+
+else:
+    # Sidebar
+    with st.sidebar:
+        st.divider()
+        models = []
+        for model in MODELS:
+            if "openai" in model and not missing_openai:
+                models.append(model)
+            elif "anthropic" in model and not missing_anthropic:
+                models.append(model)
+            elif "azure-openai" in model:
+                models.append(model)
+
+        st.selectbox(
+            "🤖 Select a Model", 
+            options=models,
+            key="model",
+        )
+
+        cols0 = st.columns(2)
+        with cols0[0]:
+            is_vector_db_loaded = ("vector_db" in st.session_state and st.session_state.vector_db is not None)
+            st.toggle(
+                "Use RAG", 
+                value=is_vector_db_loaded, 
+                key="use_rag", 
+                disabled=not is_vector_db_loaded,
+            )
+
+        with cols0[1]:
+            st.button("Clear Chat", on_click=lambda: st.session_state.messages.clear(), type="primary")
+
+        st.header("RAG Sources:")
+            
+        # File upload input for RAG with documents
+        st.file_uploader(
+            "📄 Upload a document", 
+            type=["pdf", "txt", "docx", "md"],
+            accept_multiple_files=True,
+            on_change=load_doc_to_db,
+            key="rag_docs",
+        )
+
+        # URL input for RAG with websites
+        st.text_input(
+            "🌐 Introduce a URL", 
+            placeholder="https://example.com",
+            on_change=load_url_to_db,
+            key="rag_url",
+        )
+
+        with st.expander(f"📚 Documents in DB ({0 if not is_vector_db_loaded else len(st.session_state.rag_sources)})"):
+            st.write([] if not is_vector_db_loaded else [source for source in st.session_state.rag_sources])
+
+    
+    # Main chat app
+    model_provider = st.session_state.model.split("/")[0]
+    if model_provider == "openai":
+        llm_stream = ChatOpenAI(
+            api_key=openai_api_key,
+            model_name=st.session_state.model.split("/")[-1],
+            temperature=0.3,
+            streaming=True,
+        )
+    elif model_provider == "anthropic":
+        llm_stream = ChatAnthropic(
+            api_key=anthropic_api_key,
+            model=st.session_state.model.split("/")[-1],
+            temperature=0.3,
+            streaming=True,
+        )
+    elif model_provider == "azure-openai":
+        llm_stream = AzureChatOpenAI(
+            azure_endpoint=os.getenv("AZ_OPENAI_ENDPOINT"),
+            openai_api_version="2024-02-15-preview",
+            model_name=st.session_state.model.split("/")[-1],
+            openai_api_key=os.getenv("AZ_OPENAI_API_KEY"),
+            openai_api_type="azure",
+            temperature=0.3,
+            streaming=True,
+        )
+
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    if prompt := st.chat_input("Your message"):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            full_response = ""
+
+            messages = [HumanMessage(content=m["content"]) if m["role"] == "user" else AIMessage(content=m["content"]) for m in st.session_state.messages]
+
+            if not st.session_state.use_rag:
+                st.write_stream(stream_llm_response(llm_stream, messages))
+            else:
+                st.write_stream(stream_llm_rag_response(llm_stream, messages))
+
+
+with st.sidebar:
+    st.divider()
+
+    
