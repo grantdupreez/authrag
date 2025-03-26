@@ -2,14 +2,6 @@ import os
 import streamlit as st
 import pinecone
 
-# Load environment variables
-ANTHROPIC_API_KEY=st.secrets["auth_key"]
-MODEL=st.secrets["ai_model"]
-MAX_TOKENS=st.secrets["ai_tokens"]
-AI_TEMP=st.secrets["ai_temp"]
-PINECONE_API_KEY=st.secrets["pinecone_key"]
-PINECONE_ENVIRONMENT=st.secrets["pinecone_env"]
-
 class PineconeRetriever:
     def __init__(self, index_name='claude-rag-index'):
         """
@@ -17,6 +9,11 @@ class PineconeRetriever:
         
         :param index_name: Name of the Pinecone index
         """
+
+        # Load environment variables
+        PINECONE_API_KEY=st.secrets["pinecone_key"]
+        PINECONE_ENVIRONMENT=st.secrets["pinecone_env"]
+
         
         # Initialize Pinecone
         pinecone.init(
