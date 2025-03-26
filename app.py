@@ -147,7 +147,8 @@ class RAGApplication:
             # Generate response
             response = client.messages.create(
                 model=self.MODEL,
-                max_tokens=self.MAX_TOKENS,
+                max_tokens=300,                
+#                max_tokens=self.MAX_TOKENS,
                 messages=[
                     {"role": "user", "content": full_prompt}
                 ]
