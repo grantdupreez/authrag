@@ -126,22 +126,12 @@ class RAGApplication:
         :param context: Retrieved context documents
         :return: Claude's response
         """
-
-        st.write("DEBUG q: " + query)
-        for i, doc in enumerate(context, 1):
-            st.text(f"Context {i}: {doc}")
-        st.write("END PARAMs DEBUG")
-
         
         if not self.ANTHROPIC_API_KEY:
             st.error("Anthropic API key is missing!")
             return "Error: API key not configured"
         try:
-            st.write("DEBUG CREATE ANTH")
-
             client = anthropic.Anthropic(api_key=self.ANTHROPIC_API_KEY)
-
-            st.write("DEBUG CREATED ANTH")
 
             
             # Construct prompt with context
