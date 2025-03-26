@@ -2,7 +2,7 @@ import os
 import streamlit as st
 import anthropic
 from sentence_transformers import SentenceTransformer
-import torch
+#import torch
 from pinecone import Pinecone, ServerlessSpec
 
 class RAGApplication:
