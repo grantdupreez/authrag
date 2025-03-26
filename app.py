@@ -127,12 +127,23 @@ class RAGApplication:
         :return: Claude's response
         """
 
+        st.write("DEBUG q: " + query)
+        for i, doc in enumerate(context, 1):
+            st.text(f"Context {i}: {doc}")
+        st.write("END PARAMs DEBUG")
+
+        
         if not self.ANTHROPIC_API_KEY:
             st.error("Anthropic API key is missing!")
             return "Error: API key not configured"
         try:
+            st.write("DEBUG CREATE ANTH")
+
             client = anthropic.Anthropic(api_key=self.ANTHROPIC_API_KEY)
 
+            st.write("DEBUG CREATED ANTH")
+
+            
             # Construct prompt with context
             full_prompt = f"""
             Context Documents:
@@ -179,11 +190,8 @@ def main():
         context_docs = rag_app.retrieve_similar_documents(query_embedding)
         
         # Get Claude response
-#        response = rag_app.get_claude_response(query, context_docs)
-        st.write("DEBUG q: " + query)
-        st.write("DEBUG c: " + context_docs)
-        
-        
+        response = rag_app.get_claude_response(query, context_docs)
+              
         # Display response
         st.subheader('Response')
         st.write(response)
