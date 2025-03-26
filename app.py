@@ -21,7 +21,7 @@ def initialize_documents():
     """
     Load and index sample documents if not already indexed
     """
-    with open('data/sample_documents.txt', 'r') as f:
+    with open('data/sample_document.txt', 'r') as f:
         documents = f.read().split('\n\n')
     
     # Generate embeddings
