@@ -42,21 +42,24 @@ class RAGApplication:
         
         :param index_name: Name of the Pinecone index
         """
-        # Initialize Pinecone
-        pinecone.init(
-            api_key=self.PINECONE_API_KEY,
-            environment=self.PINECONE_ENVIRONMENT
-        )
+        # Initialize Pinecone with the new method
+        pinecone.Pinecone(api_key=self.PINECONE_API_KEY)
      
         # Create or connect to index
-        if index_name not in pinecone.list_indexes():
+        self.index = pinecone.Index(index_name)
+        
+        # If index doesn't exist, create it
+        try:
+            # Check if index exists by attempting to describe it
+            pinecone.describe_index(index_name)
+        except Exception:
+            # Create index if it doesn't exist
             pinecone.create_index(
                 name=index_name, 
                 dimension=384,  # Matches all-MiniLM-L6-v2 model
                 metric='cosine'
             )
-        
-        self.index = pinecone.Index(index_name)
+            self.index = pinecone.Index(index_name)
 
     def upsert_documents(self, documents, embeddings):
         """
@@ -99,14 +102,20 @@ class RAGApplication:
         """
         Load and index sample documents if not already indexed
         """
-        with open('data/sample_document.txt', 'r') as f:
-            documents = f.read().split('\n\n')
+        try:
+            with open('data/sample_document.txt', 'r') as f:
+                documents = f.read().split('\n\n')
+        except FileNotFoundError:
+            st.error("Sample document file not found. Please create 'data/sample_document.txt'")
+            return []
     
         # Generate embeddings
         embeddings = self.generate_embeddings(documents)
     
         # Upsert to Pinecone
         self.upsert_documents(documents, embeddings)
+        
+        return documents
 
     def get_claude_response(self, query, context):
         """
@@ -147,7 +156,7 @@ def main():
     
     # Initialize documents on first run
     if 'initialized' not in st.session_state:
-        rag_app.initialize_documents()
+        documents = rag_app.initialize_documents()
         st.session_state['initialized'] = True
     
     # Query input
