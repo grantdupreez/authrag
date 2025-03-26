@@ -127,10 +127,9 @@ class RAGApplication:
         :return: Claude's response
         """
 
-       if not self.ANTHROPIC_API_KEY:
+        if not self.ANTHROPIC_API_KEY:
             st.error("Anthropic API key is missing!")
             return "Error: API key not configured"
-        
         try:
             client = anthropic.Anthropic(api_key=self.ANTHROPIC_API_KEY)
     
