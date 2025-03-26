@@ -141,13 +141,12 @@ class RAGApplication:
     
             Human Query: {query}
     
-            Based on the context documents, please provide a comprehensive and accurate response.
+            Provide a comprehensive and accurate response.
             """
         
             # Generate response
             response = client.messages.create(
                 model=self.MODEL,
-#                max_tokens=300,                
                 max_tokens=self.MAX_TOKENS,
                 messages=[
                     {"role": "user", "content": full_prompt}
