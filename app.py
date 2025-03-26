@@ -231,7 +231,7 @@ def main():
         response = rag_app.get_claude_response(query, context_docs)
 
         # Add user message to session state
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.session_state.messages.append({"role": "user", "content": query})
         # Add Claude's response to session state
         st.session_state.messages.append({"role": "assistant", "content": response})
 
