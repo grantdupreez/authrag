@@ -179,7 +179,10 @@ def main():
         context_docs = rag_app.retrieve_similar_documents(query_embedding)
         
         # Get Claude response
-        response = rag_app.get_claude_response(query, context_docs)
+#        response = rag_app.get_claude_response(query, context_docs)
+        st.write("DEBUG q: " + query)
+        st.write("DEBUG c: " + context_docs)
+        
         
         # Display response
         st.subheader('Response')
