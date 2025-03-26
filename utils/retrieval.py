@@ -17,7 +17,6 @@ class PineconeRetriever:
         
         :param index_name: Name of the Pinecone index
         """
-        load_dotenv()
         
         # Initialize Pinecone
         pinecone.init(
