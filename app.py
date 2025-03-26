@@ -3,7 +3,7 @@ import streamlit as st
 import anthropic
 from sentence_transformers import SentenceTransformer
 import torch
-import pinecone
+from pinecone import Pinecone, ServerlessSpec
 
 class RAGApplication:
     def __init__(self):
@@ -16,7 +16,6 @@ class RAGApplication:
         self.MAX_TOKENS = st.secrets["ai_tokens"]
         self.AI_TEMP = st.secrets["ai_temp"]
         self.PINECONE_API_KEY = st.secrets["pinecone_key"]
-        self.PINECONE_ENVIRONMENT = st.secrets["pinecone_env"]
         
         # Initialize Pinecone
         self.init_pinecone()
@@ -42,22 +41,26 @@ class RAGApplication:
         
         :param index_name: Name of the Pinecone index
         """
-        # Initialize Pinecone
-        pc = pinecone.Pinecone(api_key=self.PINECONE_API_KEY)
+        # Initialize Pinecone client
+        pc = Pinecone(api_key=self.PINECONE_API_KEY)
      
-        # Get or create index
-        if index_name not in pc.list_indexes().names():
+        # Check if index exists
+        existing_indexes = pc.list_indexes()
+        
+        # Create index if it doesn't exist
+        if not any(index.name == index_name for index in existing_indexes):
             pc.create_index(
                 name=index_name, 
                 dimension=384,  # Matches all-MiniLM-L6-v2 model
-                metric='cosine'
+                metric='cosine',
+                spec=ServerlessSpec(
+                    cloud='aws',
+                    region='us-west-2'
+                )
             )
         
-        # Get index host
-        index_host = pc.describe_index(index_name).host
-        
-        # Initialize index with host
-        self.index = pc.Index(index_name, host=index_host)
+        # Initialize the index
+        self.index = pc.Index(index_name)
 
     def upsert_documents(self, documents, embeddings):
         """
