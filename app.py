@@ -26,7 +26,7 @@ def generate_embeddings(self, texts):
     """
     # Ensure input is a list
     if isinstance(texts, str):
-    texts = [texts]
+        texts = [texts]
         
     # Generate embeddings
     embeddings = self.model.encode(texts, convert_to_tensor=False)    
