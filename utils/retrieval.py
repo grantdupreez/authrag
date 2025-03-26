@@ -7,7 +7,7 @@ ANTHROPIC_API_KEY=st.secrets["auth_key"]
 MODEL=st.secrets["ai_model"]
 MAX_TOKENS=st.secrets["ai_tokens"]
 AI_TEMP=st.secrets["ai_temp"]
-PINECONE_API_KEY=st.secrets["pincecone_key"]
+PINECONE_API_KEY=st.secrets["pinecone_key"]
 PINECONE_ENVIRONMENT=st.secrets["pinecone_env"]
 
 class PineconeRetriever:
