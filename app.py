@@ -42,24 +42,22 @@ class RAGApplication:
         
         :param index_name: Name of the Pinecone index
         """
-        # Initialize Pinecone with the new method
-        pinecone.Pinecone(api_key=self.PINECONE_API_KEY)
+        # Initialize Pinecone
+        pc = pinecone.Pinecone(api_key=self.PINECONE_API_KEY)
      
-        # Create or connect to index
-        self.index = pinecone.Index(index_name)
-        
-        # If index doesn't exist, create it
-        try:
-            # Check if index exists by attempting to describe it
-            pinecone.describe_index(index_name)
-        except Exception:
-            # Create index if it doesn't exist
-            pinecone.create_index(
+        # Get or create index
+        if index_name not in pc.list_indexes().names():
+            pc.create_index(
                 name=index_name, 
                 dimension=384,  # Matches all-MiniLM-L6-v2 model
                 metric='cosine'
             )
-            self.index = pinecone.Index(index_name)
+        
+        # Get index host
+        index_host = pc.describe_index(index_name).host
+        
+        # Initialize index with host
+        self.index = pc.Index(index_name, host=index_host)
 
     def upsert_documents(self, documents, embeddings):
         """
