@@ -132,27 +132,30 @@ class RAGApplication:
             return "Error: API key not configured"
         try:
             client = anthropic.Anthropic(api_key=self.ANTHROPIC_API_KEY)
-    
-        # Construct prompt with context
-        full_prompt = f"""
-        Context Documents:
-        {chr(10).join(context)}
 
-        Human Query: {query}
-
-        Based on the context documents, please provide a comprehensive and accurate response.
-        """
+            # Construct prompt with context
+            full_prompt = f"""
+            Context Documents:
+            {chr(10).join(context)}
     
-        # Generate response
-        response = client.messages.create(
-            model=self.MODEL,
-            max_tokens=self.MAX_TOKENS,
-            messages=[
-                {"role": "user", "content": full_prompt}
-            ]
-        )
+            Human Query: {query}
     
-        return response.content[0].text
+            Based on the context documents, please provide a comprehensive and accurate response.
+            """
+        
+            # Generate response
+            response = client.messages.create(
+                model=self.MODEL,
+                max_tokens=self.MAX_TOKENS,
+                messages=[
+                    {"role": "user", "content": full_prompt}
+                ]
+            )
+        
+            return response.content[0].text
+        except Exception as e:
+            st.error(f"Error generating Claude response: {str(e)}")
+            return f"Error: {str(e)}"
 
 def main():
     st.title('Claude RAG Application')
