@@ -1,13 +1,17 @@
 import os
 import streamlit as st
-from dotenv import load_dotenv
 import anthropic
 
 from utils.embedding import EmbeddingGenerator
 from utils.retrieval import PineconeRetriever
 
 # Load environment variables
-load_dotenv()
+ANTHROPIC_API_KEY=st.secrets["auth_key"]
+MODEL=st.secrets["ai_model"]
+MAX_TOKENS=st.secrets["ai_tokens"]
+AI_TEMP=st.secrets["ai_temp"]
+PINECONE_API_KEY=st.secrets["pincecone_key"]
+PINECONE_ENVIRONMENT=st.secrets["pinecone_env"]
 
 # Initialize components
 embedding_generator = EmbeddingGenerator()
@@ -48,8 +52,8 @@ def get_claude_response(query, context):
     
     # Generate response
     response = client.messages.create(
-        model="claude-3-haiku-20240307",
-        max_tokens=300,
+        model=MODEL,
+        max_tokens=MAX_TOKENS,
         messages=[
             {"role": "user", "content": full_prompt}
         ]
