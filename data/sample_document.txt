@@ -1,0 +1,5 @@
+Artificial Intelligence is a rapidly evolving field of computer science that aims to create intelligent machines that can simulate human-like thinking and behavior.
+
+Machine Learning is a subset of AI that focuses on the development of algorithms and statistical models that enable computer systems to improve their performance on a specific task through experience.
+
+Natural Language Processing (NLP) is a branch of AI that helps computers understand, interpret, and manipulate human language, enabling applications like translation, sentiment analysis, and chatbots.
