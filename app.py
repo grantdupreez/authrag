@@ -13,7 +13,7 @@ class RAGApplication:
         # Load environment variables
         self.ANTHROPIC_API_KEY = st.secrets["auth_key"]
         self.MODEL = st.secrets["ai_model"]
-        self.MAX_TOKENS = st.secrets["ai_tokens"]
+        self.MAX_TOKENS = int(st.secrets["ai_tokens"])
         self.AI_TEMP = st.secrets["ai_temp"]
         self.PINECONE_API_KEY = st.secrets["pinecone_key"]
         
@@ -147,8 +147,8 @@ class RAGApplication:
             # Generate response
             response = client.messages.create(
                 model=self.MODEL,
-                max_tokens=300,                
-#                max_tokens=self.MAX_TOKENS,
+#                max_tokens=300,                
+                max_tokens=self.MAX_TOKENS,
                 messages=[
                     {"role": "user", "content": full_prompt}
                 ]
