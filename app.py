@@ -44,6 +44,14 @@ def check_password():
 if not check_password():
     st.stop()
 
+# initialise the conversation
+
+if "messages" not in st.session_state:
+    st.session_state["messages"] = []
+
+for message in st.session_state.get("messages",[]):
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
 class RAGApplication:
     def __init__(self):
@@ -221,7 +229,12 @@ def main():
         
         # Get Claude response
         response = rag_app.get_claude_response(query, context_docs)
-              
+
+        # Add user message to session state
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        # Add Claude's response to session state
+        st.session_state.messages.append({"role": "assistant", "content": response})
+
         # Display response
         st.subheader('Response')
         st.write(response)
