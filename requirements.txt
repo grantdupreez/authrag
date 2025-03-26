@@ -1,4 +1,4 @@
 anthropic
 streamlit
-pinecone-client
+pinecone
 sentence-transformers
